@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Délibération fils nus BT - Douarnenez</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    :root {
+      --bg: #f7f5ef;
+      --ink: #24312f;
+      --muted: #62706d;
+      --line: #d6d0c2;
+      --aerial: #d96832;
+      --mixed: #2478a7;
+      --watch: #7251a5;
+      --discreet: #2e8b57;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(320px, 430px) minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    aside {
+      border-right: 1px solid var(--line);
+      background: #fffdfa;
+      overflow: auto;
+      max-height: 100vh;
+    }
+
+    .panel {
+      padding: 24px 24px 28px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 18px 0;
+    }
+
+    .tag {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+      background: #fff;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex: 0 0 auto;
+    }
+
+    .section-title {
+      margin: 22px 0 10px;
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #4f5d5a;
+      letter-spacing: .04em;
+    }
+
+    .zone-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    button.zone {
+      width: 100%;
+      padding: 10px 12px;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      color: var(--ink);
+    }
+
+    button.zone:hover,
+    button.zone:focus {
+      outline: 2px solid rgba(36, 120, 167, .26);
+      border-color: #9db7c7;
+    }
+
+    .zone-name {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 750;
+    }
+
+    .zone-meta {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .summary {
+      padding: 14px;
+      background: #f3efe6;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    #map {
+      width: 100%;
+      height: 100vh;
+      background: #e5e1d7;
+    }
+
+    .leaflet-popup-content {
+      min-width: 240px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .popup-title {
+      margin: 0 0 6px;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .popup-row {
+      margin: 3px 0;
+    }
+
+    .popup-note {
+      margin-top: 8px;
+      color: #53615e;
+    }
+
+    @media (max-width: 860px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        max-height: none;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      #map {
+        height: 68vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <aside>
+      <div class="panel">
+        <h1>Délibération fils nus BT</h1>
+        <p class="lead">Carte de lecture des secteurs concernés par la convention tripartite Douarnenez - SDEF - Enedis. Les points sont des localisations approximatives à partir de l’annexe et d’OpenStreetMap, pas un tracé d’exécution.</p>
+
+        <div class="legend" aria-label="Légende">
+          <div class="tag"><span class="dot" style="background: var(--aerial)"></span>100 % aérien</div>
+          <div class="tag"><span class="dot" style="background: var(--mixed)"></span>Mixte</div>
+          <div class="tag"><span class="dot" style="background: var(--watch)"></span>Vigilance</div>
+          <div class="tag"><span class="dot" style="background: var(--discreet)"></span>Discret prévu</div>
+        </div>
+
+        <div class="summary">
+          La carte montre une logique assez nette : les opérations 100 % aériennes se concentrent sur des secteurs périphériques ou de desserte locale, tandis que les solutions mixtes apparaissent dans les zones plus urbaines, plus visibles ou concernées par des contraintes patrimoniales. Les points les plus politiques sont les secteurs littoraux/visibles et l’engagement communal de ne pas demander d’enfouissement pendant 15 ans.
+        </div>
+
+        <div class="section-title">Points sensibles</div>
+        <div id="watchList" class="zone-list"></div>
+
+        <div class="section-title">Toutes les opérations</div>
+        <div id="zoneList" class="zone-list"></div>
+      </div>
+    </aside>
+    <div id="map"></div>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const operations = [
+      {
+        id: "29046P0039",
+        name: "Roches Blanches",
+        technique: "100 % aérien",
+        date: "possible dès 2027",
+        lat: 48.1090781,
+        lon: -4.3736041,
+        color: "aerial",
+        watch: true,
+        note: "Secteur ouest/littoral. Point à vérifier au regard de la bande côtière et de l’impact paysager.",
+        detail: "La convention accepte une solution aérienne, donc poteaux maintenus ou remplacés."
+      },
+      {
+        id: "29046P0068",
+        name: "Le Carbont",
+        technique: "100 % aérien",
+        date: "possible dès 2027",
+        lat: 48.0954318,
+        lon: -4.3493424,
+        color: "aerial",
+        watch: true,
+        note: "Secteur urbain autour de l’impasse/rond-point du Carbont et de la rue Pierre Pernès.",
+        detail: "Impact visuel à apprécier car le plan annexe montre un tracé dans un tissu habité."
+      },
+      {
+        id: "29046P0017",
+        name: "Trézulien",
+        technique: "100 % aérien",
+        date: "possible dès 2027",
+        lat: 48.0893202,
+        lon: -4.3507537,
+        color: "aerial",
+        watch: false,
+        note: "Secteur Pouldavid/Golvez.",
+        detail: "Dérogation complète au discret."
+      },
+      {
+        id: "29046P0080",
+        name: "Kerguesten",
+        technique: "100 % aérien",
+        date: "possible dès 2027",
+        lat: 48.0851578,
+        lon: -4.3507647,
+        color: "aerial",
+        watch: false,
+        note: "Secteur Pouldavid, proche boulevard Jean Moulin.",
+        detail: "Dérogation complète au discret."
+      },
+      {
+        id: "29046P0035",
+        name: "Le Menhir",
+        technique: "100 % aérien",
+        date: "possible dès 2027",
+        lat: 48.0865278,
+        lon: -4.3407444,
+        color: "aerial",
+        watch: false,
+        note: "Secteur Beret/Pouldavid.",
+        detail: "Dérogation complète au discret."
+      },
+      {
+        id: "29046P0106",
+        name: "Rue Ar Véret",
+        technique: "100 % aérien",
+        date: "possible dès 2027",
+        lat: 48.0887493,
+        lon: -4.3424732,
+        color: "aerial",
+        watch: false,
+        note: "Secteur Tréboul/Pouldavid.",
+        detail: "Dérogation complète au discret."
+      },
+      {
+        id: "29046P0016",
+        name: "Brunguen",
+        technique: "100 % aérien, sous réserve d’étude",
+        date: "possible dès 2027",
+        lat: 48.0688186,
+        lon: -4.3483132,
+        color: "watch",
+        watch: true,
+        note: "L’annexe précise que l’aérien est autorisé par la commune, mais reste à vérifier lors de l’étude.",
+        detail: "Demander à Enedis ce qui se passe si l’étude conclut que l’aérien n’est pas envisageable."
+      },
+      {
+        id: "29046P0096",
+        name: "Hervé Quéméner",
+        technique: "mixte",
+        date: "2028 souhaitée par la mairie",
+        lat: 48.0874444,
+        lon: -4.3288271,
+        color: "mixed",
+        watch: true,
+        note: "Rues Auguste Brizeux et Yann Dargent en souterrain ; reste en aérien.",
+        detail: "Bon exemple de compromis : enfouissement ciblé sur les rues sensibles, aérien ailleurs."
+      },
+      {
+        id: "29046P0009",
+        name: "Pouldavid",
+        technique: "mixte",
+        date: "2029 souhaitée par la mairie",
+        lat: 48.0780365,
+        lon: -4.3319303,
+        color: "mixed",
+        watch: true,
+        note: "Toul an Drez ou Max Dormoy en aérien ; rue Jean Moneau en façade ; rue de la Liberté en souterrain.",
+        detail: "Zone à regarder finement car les techniques changent rue par rue."
+      },
+      {
+        id: "29046P0044",
+        name: "Le Clerc / Gabriel Le Signe",
+        technique: "100 % aérien",
+        date: "2029 souhaitée par la mairie",
+        lat: 48.0815578,
+        lon: -4.3263370,
+        color: "watch",
+        watch: true,
+        note: "Annexe localisée autour de la rue/impasse Gabriel Le Signe, proche promenade Paul Édouard Paulet.",
+        detail: "Secteur visible et proche du front urbain : demander justification de la solution 100 % aérienne."
+      },
+      {
+        id: "29046P0008",
+        name: "Quatre Vents",
+        technique: "mixte",
+        date: "après 2029",
+        lat: 48.0870974,
+        lon: -4.3080645,
+        color: "mixed",
+        watch: true,
+        note: "Rue et impasse Léo Lagrange en souterrain ; rue de Kervignac en souterrain ; rue Manar Lak en aérien ; reste en souterrain.",
+        detail: "Le choix majoritaire est discret, avec un point aérien isolé à vérifier."
+      },
+      {
+        id: "29046P0032",
+        name: "Kervignac",
+        technique: "100 % aérien",
+        date: "possible dès 2027",
+        lat: 48.0854923,
+        lon: -4.3025825,
+        color: "aerial",
+        watch: false,
+        note: "Secteur est/Ploaré.",
+        detail: "Dérogation complète au discret."
+      },
+      {
+        id: "29046P0048",
+        name: "Kerstrat",
+        technique: "100 % aérien",
+        date: "possible dès 2027",
+        lat: 48.0854468,
+        lon: -4.2960522,
+        color: "aerial",
+        watch: false,
+        note: "Secteur est/Ploaré.",
+        detail: "Dérogation complète au discret."
+      },
+      {
+        id: "29046P0013",
+        name: "Ménez Peulven",
+        technique: "mixte",
+        date: "possible dès 2027",
+        lat: 48.0747696,
+        lon: -4.3111442,
+        color: "watch",
+        watch: true,
+        note: "Kerru en souterrain ; reste à étudier pour deux clients, avec technique discrète dans la zone de servitude du monument historique.",
+        detail: "C’est le point patrimonial le plus explicite de l’annexe."
+      },
+      {
+        id: "29046P0050",
+        name: "Kerdaec",
+        technique: "100 % aérien",
+        date: "possible dès 2027",
+        lat: 48.0698327,
+        lon: -4.3015854,
+        color: "aerial",
+        watch: false,
+        note: "100 % aérien depuis le poste P0086 Keroustillic.",
+        detail: "Secteur sud-est/périphérique."
+      }
+    ];
+
+    const palette = {
+      aerial: "#d96832",
+      mixed: "#2478a7",
+      watch: "#7251a5",
+      discreet: "#2e8b57"
+    };
+
+    const map = L.map("map", {
+      scrollWheelZoom: true
+    }).setView([48.087, -4.330], 13);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+
+    const markers = {};
+    const bounds = [];
+
+    function markerStyle(op) {
+      return {
+        radius: op.watch ? 10 : 8,
+        color: "#ffffff",
+        weight: 2,
+        fillColor: palette[op.color],
+        fillOpacity: .92
+      };
+    }
+
+    function popup(op) {
+      return `
+        <div class="popup-title">${op.name}</div>
+        <div class="popup-row"><strong>Code :</strong> ${op.id}</div>
+        <div class="popup-row"><strong>Technique :</strong> ${op.technique}</div>
+        <div class="popup-row"><strong>Calendrier :</strong> ${op.date}</div>
+        <div class="popup-note">${op.note}</div>
+        <div class="popup-note">${op.detail}</div>
+      `;
+    }
+
+    operations.forEach((op) => {
+      const marker = L.circleMarker([op.lat, op.lon], markerStyle(op))
+        .bindPopup(popup(op))
+        .addTo(map);
+
+      L.circle([op.lat, op.lon], {
+        radius: op.watch ? 320 : 230,
+        color: palette[op.color],
+        fillColor: palette[op.color],
+        fillOpacity: .08,
+        weight: 1
+      }).addTo(map);
+
+      markers[op.id] = marker;
+      bounds.push([op.lat, op.lon]);
+    });
+
+    map.fitBounds(bounds, { padding: [28, 28] });
+
+    function createZoneButton(op) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "zone";
+      button.innerHTML = `
+        <div class="zone-name">
+          <span>${op.name}</span>
+          <span style="color:${palette[op.color]}">${op.id}</span>
+        </div>
+        <div class="zone-meta">${op.technique} · ${op.date}</div>
+        <div class="zone-meta">${op.note}</div>
+      `;
+      button.addEventListener("click", () => {
+        map.setView([op.lat, op.lon], 16);
+        markers[op.id].openPopup();
+      });
+      return button;
+    }
+
+    const watchList = document.querySelector("#watchList");
+    operations.filter(op => op.watch).forEach(op => watchList.appendChild(createZoneButton(op)));
+
+    const zoneList = document.querySelector("#zoneList");
+    operations.forEach(op => zoneList.appendChild(createZoneButton(op)));
+  </script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Délibération fils nus BT - revenus IRIS</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root { --bg:#f7f5ef; --ink:#24312f; --muted:#62706d; --line:#d6d0c2; --aerial:#d96832; --mixed:#2478a7; --watch:#7251a5; }
+* { box-sizing:border-box; }
+body { margin:0; color:var(--ink); background:var(--bg); font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+main { display:grid; grid-template-columns:minmax(340px,460px) minmax(0,1fr); min-height:100vh; }
+aside { border-right:1px solid var(--line); background:#fffdfa; overflow:auto; max-height:100vh; }
+.panel { padding:24px; }
+h1 { margin:0 0 8px; font-size:24px; line-height:1.18; letter-spacing:0; }
+.lead { margin:0 0 16px; color:var(--muted); font-size:14px; line-height:1.45; }
+.summary { padding:14px; border:1px solid var(--line); border-radius:8px; background:#f3efe6; font-size:13px; line-height:1.45; margin:16px 0; }
+.metrics { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:14px 0; }
+.metric { border:1px solid var(--line); border-radius:8px; padding:10px; background:white; }
+.metric strong { display:block; font-size:18px; }
+.metric span { color:var(--muted); font-size:12px; }
+.legend { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:16px 0; }
+.tag { display:flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:13px; background:white; }
+.dot { width:12px; height:12px; border-radius:50%; flex:0 0 auto; }
+.section-title { margin:22px 0 10px; font-size:13px; font-weight:800; text-transform:uppercase; color:#4f5d5a; letter-spacing:.04em; }
+table { width:100%; border-collapse:collapse; font-size:12px; background:white; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+th, td { padding:8px; border-bottom:1px solid #ece7dd; text-align:left; vertical-align:top; }
+th { color:#4f5d5a; font-size:11px; text-transform:uppercase; }
+tr:last-child td { border-bottom:0; }
+button.zone { width:100%; margin:0 0 8px; padding:10px 12px; text-align:left; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; color:var(--ink); }
+button.zone:hover, button.zone:focus { outline:2px solid rgba(36,120,167,.26); border-color:#9db7c7; }
+.zone-name { display:flex; justify-content:space-between; gap:12px; font-size:14px; font-weight:750; }
+.zone-meta { margin-top:4px; color:var(--muted); font-size:12px; line-height:1.35; }
+#map { width:100%; height:100vh; background:#e5e1d7; }
+.leaflet-popup-content { min-width:250px; font-size:13px; line-height:1.4; }
+.popup-title { margin:0 0 6px; font-size:15px; font-weight:800; }
+@media (max-width:860px) { main { grid-template-columns:1fr; } aside { max-height:none; border-right:0; border-bottom:1px solid var(--line); } #map { height:68vh; } }
+</style>
+</head>
+<body>
+<main>
+<aside><div class="panel">
+<h1>Fils nus BT × revenus</h1>
+<p class="lead">Croisement des opérations de la convention avec les revenus médians INSEE Filosofi 2021 par IRIS. Les points restent des localisations approximatives issues de l’annexe.</p>
+<div class="legend">
+<div class="tag"><span class="dot" style="background:var(--aerial)"></span>100 % aérien</div>
+<div class="tag"><span class="dot" style="background:var(--mixed)"></span>Mixte</div>
+<div class="tag"><span class="dot" style="background:var(--watch)"></span>Vigilance</div>
+<div class="tag"><span class="dot" style="background:#f0d7b8"></span>IRIS plus modeste</div>
+</div>
+<div class="summary"><strong>Conclusion provisoire :</strong> avec ces points, l’aérien n’est pas concentré dans les IRIS les plus modestes. La moyenne des revenus médians des IRIS touchés par les opérations aériennes est de 23 074 €, contre 21 970 € pour les opérations mixtes.</div>
+<div class="metrics">
+<div class="metric"><strong>11</strong><span>opérations aériennes ou réserve</span></div>
+<div class="metric"><strong>4</strong><span>opérations mixtes</span></div>
+<div class="metric"><strong>11.1 %</strong><span>pauvreté moyenne IRIS aérien</span></div>
+<div class="metric"><strong>13.0 %</strong><span>pauvreté moyenne IRIS mixte</span></div>
+</div>
+<div class="section-title">IRIS de Douarnenez</div>
+<table><thead><tr><th>IRIS</th><th>Médiane</th><th>Pauvreté</th><th>Opérations</th></tr></thead><tbody id="irisRows"></tbody></table>
+<div class="section-title">Opérations</div>
+<div id="zoneList"></div>
+</div></aside>
+<div id="map"></div>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const irisGeojson = {"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {"irisCode": "290460101", "irisName": "Centre Ville 1", "median": 20940.0, "poverty": 21.0, "q1": 14980.0, "q3": 28030.0, "note": "0"}, "geometry": {"type": "MultiPolygon", "coordinates": [[[[-4.324077, 48.093675], [-4.33249, 48.090023], [-4.335785, 48.094555], [-4.324336, 48.096863], [-4.324077, 48.093675]]]]}}, {"type": "Feature", "properties": {"irisCode": "290460102", "irisName": "Centre Ville 2", "median": 21030.0, "poverty": 17.0, "q1": 15650.0, "q3": 27270.0, "note": "0"}, "geometry": {"type": "MultiPolygon", "coordinates": [[[[-4.335785, 48.094555], [-4.33249, 48.090023], [-4.324077, 48.093675], [-4.322436, 48.0926], [-4.3219, 48.091159], [-4.324546, 48.090371], [-4.325229, 48.089374], [-4.324221, 48.087556], [-4.330113, 48.086279], [-4.330611, 48.087049], [-4.329195, 48.088263], [-4.332286, 48.088158], [-4.336176, 48.094468], [-4.335785, 48.094555]]]]}}, {"type": "Feature", "properties": {"irisCode": "290460103", "irisName": "Ploare 1", "median": 22950.0, "poverty": 10.0, "q1": 18680.0, "q3": 28120.0, "note": "0"}, "geometry": {"type": "MultiPolygon", "coordinates": [[[[-4.322436, 48.0926], [-4.311284, 48.090824], [-4.296816, 48.091947], [-4.292273, 48.089414], [-4.276923, 48.085734], [-4.269627, 48.078359], [-4.279914, 48.075847], [-4.288879, 48.070803], [-4.291736, 48.059435], [-4.298812, 48.048483], [-4.302463, 48.048656], [-4.306609, 48.051002], [-4.315538, 48.056697], [-4.319399, 48.060424], [-4.324558, 48.066597], [-4.324516, 48.073505], [-4.319897, 48.076083], [-4.320281, 48.07757], [-4.32214, 48.078797], [-4.320056, 48.080155], [-4.324221, 48.087556], [-4.325229, 48.089374], [-4.324546, 48.090371], [-4.3219, 48.091159], [-4.322436, 48.0926]]]]}}, {"type": "Feature", "properties": {"irisCode": "290460104", "irisName": "Ploare 2", "median": 20590.0, "poverty": 17.0, "q1": 15650.0, "q3": 25780.0, "note": "0"}, "geometry": {"type": "MultiPolygon", "coordinates": [[[[-4.33255, 48.084328], [-4.332286, 48.088158], [-4.329195, 48.088263], [-4.330611, 48.087049], [-4.330113, 48.086279], [-4.324221, 48.087556], [-4.320056, 48.080155], [-4.32214, 48.078797], [-4.324912, 48.08053], [-4.32913, 48.081355], [-4.33255, 48.084328]]]]}}, {"type": "Feature", "properties": {"irisCode": "290460105", "irisName": "Pouldavid", "median": 20950.0, "poverty": 15.0, "q1": 16010.0, "q3": 25740.0, "note": "0"}, "geometry": {"type": "MultiPolygon", "coordinates": [[[[-4.361297, 48.080878], [-4.357743, 48.080856], [-4.349509, 48.078389], [-4.345937, 48.078292], [-4.342515, 48.078987], [-4.340023, 48.081696], [-4.33255, 48.084328], [-4.32913, 48.081355], [-4.324912, 48.08053], [-4.32214, 48.078797], [-4.320281, 48.07757], [-4.319897, 48.076083], [-4.324516, 48.073505], [-4.332732, 48.07086], [-4.34337, 48.064949], [-4.349892, 48.063282], [-4.353304, 48.063166], [-4.369952, 48.068118], [-4.375007, 48.073823], [-4.375925, 48.07586], [-4.374402, 48.082162], [-4.367776, 48.082255], [-4.361297, 48.080878]]]]}}, {"type": "Feature", "properties": {"irisCode": "290460106", "irisName": "Treboul 1", "median": 21910.0, "poverty": 12.0, "q1": 16810.0, "q3": 27770.0, "note": "0"}, "geometry": {"type": "MultiPolygon", "coordinates": [[[[-4.33255, 48.084328], [-4.340023, 48.081696], [-4.342515, 48.078987], [-4.345937, 48.078292], [-4.349509, 48.078389], [-4.357743, 48.080856], [-4.34821, 48.084166], [-4.347365, 48.08514], [-4.350352, 48.08684], [-4.350345, 48.090267], [-4.344348, 48.096285], [-4.339296, 48.098394], [-4.339371, 48.095953], [-4.336176, 48.094468], [-4.332286, 48.088158], [-4.33255, 48.084328]]]]}}, {"type": "Feature", "properties": {"irisCode": "290460107", "irisName": "Treboul 2", "median": 24900.0, "poverty": 9.0, "q1": 18800.0, "q3": 32900.0, "note": "0"}, "geometry": {"type": "MultiPolygon", "coordinates": [[[[-4.379002, 48.107807], [-4.375565, 48.109897], [-4.373507, 48.110182], [-4.363789, 48.109164], [-4.339296, 48.098394], [-4.344348, 48.096285], [-4.350345, 48.090267], [-4.350352, 48.08684], [-4.347365, 48.08514], [-4.34821, 48.084166], [-4.357743, 48.080856], [-4.361297, 48.080878], [-4.360521, 48.085882], [-4.366865, 48.090623], [-4.37223, 48.096079], [-4.379002, 48.107807]]]]}}]};
+const operations = [{"id": "29046P0039", "operationName": "Roches Blanches", "technique": "100 % aérien", "date": "possible dès 2027", "lat": 48.1090781, "lon": -4.3736041, "color": "aerial", "irisCode": "290460107", "irisName": "Treboul 2", "median": 24900.0, "poverty": 9.0, "q1": 18800.0, "q3": 32900.0, "note": "0"}, {"id": "29046P0068", "operationName": "Le Carbont", "technique": "100 % aérien", "date": "possible dès 2027", "lat": 48.0954318, "lon": -4.3493424, "color": "aerial", "irisCode": "290460107", "irisName": "Treboul 2", "median": 24900.0, "poverty": 9.0, "q1": 18800.0, "q3": 32900.0, "note": "0"}, {"id": "29046P0017", "operationName": "Trézulien", "technique": "100 % aérien", "date": "possible dès 2027", "lat": 48.0893202, "lon": -4.3507537, "color": "aerial", "irisCode": "290460107", "irisName": "Treboul 2", "median": 24900.0, "poverty": 9.0, "q1": 18800.0, "q3": 32900.0, "note": "0"}, {"id": "29046P0080", "operationName": "Kerguesten", "technique": "100 % aérien", "date": "possible dès 2027", "lat": 48.0851578, "lon": -4.3507647, "color": "aerial", "irisCode": "290460107", "irisName": "Treboul 2", "median": 24900.0, "poverty": 9.0, "q1": 18800.0, "q3": 32900.0, "note": "0"}, {"id": "29046P0035", "operationName": "Le Menhir", "technique": "100 % aérien", "date": "possible dès 2027", "lat": 48.0865278, "lon": -4.3407444, "color": "aerial", "irisCode": "290460106", "irisName": "Treboul 1", "median": 21910.0, "poverty": 12.0, "q1": 16810.0, "q3": 27770.0, "note": "0"}, {"id": "29046P0106", "operationName": "Rue Ar Véret", "technique": "100 % aérien", "date": "possible dès 2027", "lat": 48.0887493, "lon": -4.3424732, "color": "aerial", "irisCode": "290460106", "irisName": "Treboul 1", "median": 21910.0, "poverty": 12.0, "q1": 16810.0, "q3": 27770.0, "note": "0"}, {"id": "29046P0016", "operationName": "Brunguen", "technique": "100 % aérien, sous réserve d’étude", "date": "possible dès 2027", "lat": 48.0688186, "lon": -4.3483132, "color": "watch", "irisCode": "290460105", "irisName": "Pouldavid", "median": 20950.0, "poverty": 15.0, "q1": 16010.0, "q3": 25740.0, "note": "0"}, {"id": "29046P0096", "operationName": "Hervé Quéméner", "technique": "mixte", "date": "2028 souhaitée par la mairie", "lat": 48.0874444, "lon": -4.3288271, "color": "mixed", "irisCode": "290460102", "irisName": "Centre Ville 2", "median": 21030.0, "poverty": 17.0, "q1": 15650.0, "q3": 27270.0, "note": "0"}, {"id": "29046P0009", "operationName": "Pouldavid", "technique": "mixte", "date": "2029 souhaitée par la mairie", "lat": 48.0780365, "lon": -4.3319303, "color": "mixed", "irisCode": "290460105", "irisName": "Pouldavid", "median": 20950.0, "poverty": 15.0, "q1": 16010.0, "q3": 25740.0, "note": "0"}, {"id": "29046P0044", "operationName": "Le Clerc / Gabriel Le Signe", "technique": "100 % aérien", "date": "2029 souhaitée par la mairie", "lat": 48.0815578, "lon": -4.326337, "color": "watch", "irisCode": "290460104", "irisName": "Ploare 2", "median": 20590.0, "poverty": 17.0, "q1": 15650.0, "q3": 25780.0, "note": "0"}, {"id": "29046P0008", "operationName": "Quatre Vents", "technique": "mixte", "date": "après 2029", "lat": 48.0870974, "lon": -4.3080645, "color": "mixed", "irisCode": "290460103", "irisName": "Ploare 1", "median": 22950.0, "poverty": 10.0, "q1": 18680.0, "q3": 28120.0, "note": "0"}, {"id": "29046P0032", "operationName": "Kervignac", "technique": "100 % aérien", "date": "possible dès 2027", "lat": 48.0854923, "lon": -4.3025825, "color": "aerial", "irisCode": "290460103", "irisName": "Ploare 1", "median": 22950.0, "poverty": 10.0, "q1": 18680.0, "q3": 28120.0, "note": "0"}, {"id": "29046P0048", "operationName": "Kerstrat", "technique": "100 % aérien", "date": "possible dès 2027", "lat": 48.0854468, "lon": -4.2960522, "color": "aerial", "irisCode": "290460103", "irisName": "Ploare 1", "median": 22950.0, "poverty": 10.0, "q1": 18680.0, "q3": 28120.0, "note": "0"}, {"id": "29046P0013", "operationName": "Ménez Peulven", "technique": "mixte", "date": "possible dès 2027", "lat": 48.0747696, "lon": -4.3111442, "color": "mixed", "irisCode": "290460103", "irisName": "Ploare 1", "median": 22950.0, "poverty": 10.0, "q1": 18680.0, "q3": 28120.0, "note": "0"}, {"id": "29046P0050", "operationName": "Kerdaec", "technique": "100 % aérien", "date": "possible dès 2027", "lat": 48.0698327, "lon": -4.3015854, "color": "aerial", "irisCode": "290460103", "irisName": "Ploare 1", "median": 22950.0, "poverty": 10.0, "q1": 18680.0, "q3": 28120.0, "note": "0"}];
+const palette = { aerial:'#d96832', mixed:'#2478a7', watch:'#7251a5' };
+function euro(v) { return Math.round(v).toLocaleString('fr-FR') + ' €'; }
+function revenueColor(v) {
+  if (v < 21000) return '#d99058';
+  if (v < 22000) return '#e9bd83';
+  if (v < 23500) return '#f2ddb0';
+  return '#d8e6c3';
+}
+function isAerial(op) { return op.technique.includes('aérien') && !op.technique.includes('mixte'); }
+const map = L.map('map').setView([48.087, -4.330], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'&copy; OpenStreetMap contributors' }).addTo(map);
+const irisLayer = L.geoJSON(irisGeojson, {
+  style: f => ({ color:'#5d665f', weight:1.4, fillColor:revenueColor(f.properties.median), fillOpacity:.42 }),
+  onEachFeature: (f, layer) => layer.bindPopup(`<div class="popup-title">${f.properties.irisName}</div><div><strong>Revenu médian :</strong> ${euro(f.properties.median)}</div><div><strong>Taux de pauvreté :</strong> ${f.properties.poverty} %</div>`)
+}).addTo(map);
+const markers = {};
+operations.forEach(op => {
+  const color = palette[op.color] || (isAerial(op) ? palette.aerial : palette.mixed);
+  const marker = L.circleMarker([op.lat, op.lon], { radius: op.color === 'watch' ? 10 : 8, color:'#fff', weight:2, fillColor:color, fillOpacity:.95 })
+    .bindPopup(`<div class="popup-title">${op.operationName}</div><div><strong>Technique :</strong> ${op.technique}</div><div><strong>IRIS :</strong> ${op.irisName}</div><div><strong>Revenu médian IRIS :</strong> ${euro(op.median)}</div><div><strong>Taux de pauvreté IRIS :</strong> ${op.poverty} %</div>`)
+    .addTo(map);
+  markers[op.id] = marker;
+});
+map.fitBounds(irisLayer.getBounds(), { padding:[20,20] });
+const byIris = new Map();
+irisGeojson.features.forEach(f => byIris.set(f.properties.irisCode, {...f.properties, aerial:0, mixed:0}));
+operations.forEach(op => { const row = byIris.get(op.irisCode); if (!row) return; if (isAerial(op)) row.aerial += 1; else row.mixed += 1; });
+document.querySelector('#irisRows').innerHTML = Array.from(byIris.values()).sort((a,b)=>a.median-b.median).map(r => `<tr><td>${r.irisName}</td><td>${euro(r.median)}</td><td>${r.poverty} %</td><td>${r.aerial} aérien · ${r.mixed} mixte</td></tr>`).join('');
+const zoneList = document.querySelector('#zoneList');
+operations.forEach(op => {
+  const b = document.createElement('button'); b.type='button'; b.className='zone';
+  b.innerHTML = `<div class="zone-name"><span>${op.operationName}</span><span style="color:${palette[op.color] || palette.aerial}">${op.id}</span></div><div class="zone-meta">${op.technique} · ${op.irisName} · médiane ${euro(op.median)}</div>`;
+  b.addEventListener('click', () => { map.setView([op.lat, op.lon], 16); markers[op.id].openPopup(); });
+  zoneList.appendChild(b);
+});
+</script>
+</body>
+</html>
